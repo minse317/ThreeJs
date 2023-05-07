@@ -59,6 +59,7 @@ const cubeScaleFolder = cubeFolder.addFolder('Scale')
 cubeScaleFolder.add(cube.scale, 'x', -5, 5)
 cubeScaleFolder.add(cube.scale, 'y', -5, 5)
 cubeScaleFolder.add(cube.scale, 'z', -5, 5)
+cubeFolder.add(cube, 'visible')
 cubeFolder.open()
 cubeScaleFolder.open()
 
