@@ -3,12 +3,13 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import Stats from 'three/examples/jsm/libs/stats.module'
 import { GUI } from 'dat.gui'
 
-const scene = new THREE.Scene()
-scene.add(new THREE.AxesHelper(5))
+const scene1 = new THREE.Scene()
+const scene2 = new THREE.Scene()
 
-const light = new THREE.PointLight(0xffffff, 1000)
-light.position.set(0, 5, 10)
-scene.add(light)
+const axesHelper1 = new THREE.AxesHelper(5)
+scene1.add(axesHelper1)
+const axesHelper2 = new THREE.AxesHelper(5)
+scene2.add(axesHelper2)
 
 const camera = new THREE.PerspectiveCamera(
   75,
@@ -16,42 +17,62 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   1000
 )
-camera.position.z = 3
+camera.position.set(0, -0.35, 0.2)
 
 const renderer = new THREE.WebGLRenderer()
 renderer.setSize(window.innerWidth, window.innerHeight)
 document.body.appendChild(renderer.domElement)
 
-const controls = new OrbitControls(camera, renderer.domElement)
-controls.screenSpacePanning = true //so that panning up and down doesn't zoom in/out
-//controls.addEventListener('change', render)
+new OrbitControls(camera, renderer.domElement)
 
-const planeGeometry = new THREE.PlaneGeometry(3.6, 1.8)
+const planeGeometry1 = new THREE.PlaneGeometry() // 2, 25)
+const planeGeometry2 = new THREE.PlaneGeometry() // 2, 25)
 
-const material = new THREE.MeshPhysicalMaterial({})
+const texture1 = new THREE.TextureLoader().load('img/grid.png')
+const texture2 = new THREE.TextureLoader().load('img/grid.png')
 
-//const texture = new THREE.TextureLoader().load("img/grid.png")
-const texture = new THREE.TextureLoader().load('img/worldColour.5400x2700.jpg')
-material.map = texture
-// const envTexture = new THREE.CubeTextureLoader().load(["img/px_50.png", "img/nx_50.png", "img/py_50.png", "img/ny_50.png", "img/pz_50.png", "img/nz_50.png"])
-const envTexture = new THREE.CubeTextureLoader().load([
-  'img/px_eso0932a.jpg',
-  'img/nx_eso0932a.jpg',
-  'img/py_eso0932a.jpg',
-  'img/ny_eso0932a.jpg',
-  'img/pz_eso0932a.jpg',
-  'img/nz_eso0932a.jpg',
-])
-envTexture.mapping = THREE.CubeReflectionMapping
-material.envMap = envTexture
+const mipmap = (size: number, color: string): HTMLCanvasElement => {
+  const imageCanvas = document.createElement('canvas') as HTMLCanvasElement
+  const context = imageCanvas.getContext('2d') as CanvasRenderingContext2D
+  imageCanvas.width = size
+  imageCanvas.height = size
+  context.fillStyle = '#888888'
+  context.fillRect(0, 0, size, size)
+  context.fillStyle = color
+  context.fillRect(0, 0, size / 2, size / 2)
+  context.fillRect(size / 2, size / 2, size / 2, size / 2)
+  return imageCanvas
+}
 
-//const specularTexture = new THREE.TextureLoader().load("img/grayscale-test.png")
-const specularTexture = new THREE.TextureLoader().load('img/earthSpecular.jpg')
-material.roughnessMap = specularTexture
-material.metalnessMap = specularTexture
+const blankCanvas = document.createElement('canvas') as HTMLCanvasElement
+blankCanvas.width = 128
+blankCanvas.height = 128
 
-const plane: THREE.Mesh = new THREE.Mesh(planeGeometry, material)
-scene.add(plane)
+// const texture1 = new THREE.CanvasTexture(blankCanvas)
+// texture1.mipmaps[0] = mipmap(128, '#ff0000')
+// texture1.mipmaps[1] = mipmap(64, '#00ff00')
+// texture1.mipmaps[2] = mipmap(32, '#0000ff')
+// texture1.mipmaps[3] = mipmap(16, '#880000')
+// texture1.mipmaps[4] = mipmap(8, '#008800')
+// texture1.mipmaps[5] = mipmap(4, '#000088')
+// texture1.mipmaps[6] = mipmap(2, '#008888')
+// texture1.mipmaps[7] = mipmap(1, '#880088')
+// texture1.repeat.set(5, 50)
+// texture1.wrapS = THREE.RepeatWrapping
+// texture1.wrapT = THREE.RepeatWrapping
+
+// const texture2 = texture1.clone()
+// texture2.minFilter = THREE.NearestFilter
+// texture2.magFilter = THREE.NearestFilter
+
+const material1 = new THREE.MeshBasicMaterial({ map: texture1 })
+const material2 = new THREE.MeshBasicMaterial({ map: texture2 })
+
+const plane1 = new THREE.Mesh(planeGeometry1, material1)
+const plane2 = new THREE.Mesh(planeGeometry2, material2)
+
+scene1.add(plane1)
+scene2.add(plane2)
 
 window.addEventListener('resize', onWindowResize, false)
 function onWindowResize() {
@@ -61,63 +82,51 @@ function onWindowResize() {
   render()
 }
 
-const stats = new Stats()
-document.body.appendChild(stats.dom)
-
 const options = {
-  side: {
-    FrontSide: THREE.FrontSide,
-    BackSide: THREE.BackSide,
-    DoubleSide: THREE.DoubleSide,
+  minFilters: {
+    NearestFilter: THREE.NearestFilter,
+    NearestMipMapLinearFilter: THREE.NearestMipMapLinearFilter,
+    NearestMipMapNearestFilter: THREE.NearestMipMapNearestFilter,
+    'LinearFilter ': THREE.LinearFilter,
+    'LinearMipMapLinearFilter (Default)': THREE.LinearMipMapLinearFilter,
+    LinearMipmapNearestFilter: THREE.LinearMipmapNearestFilter,
+  },
+  magFilters: {
+    NearestFilter: THREE.NearestFilter,
+    'LinearFilter (Default)': THREE.LinearFilter,
   },
 }
 const gui = new GUI()
+const textureFolder = gui.addFolder('THREE.Texture')
+textureFolder
+  .add(texture2, 'minFilter', options.minFilters)
+  .onChange(() => updateMinFilter())
+textureFolder
+  .add(texture2, 'magFilter', options.magFilters)
+  .onChange(() => updateMagFilter())
+textureFolder
+  .add(texture2, 'anisotropy', 1, renderer.capabilities.getMaxAnisotropy())
+  .onChange(() => updateAnistropy())
+textureFolder.open()
 
-const materialFolder = gui.addFolder('THREE.Material')
-materialFolder.add(material, 'transparent')
-materialFolder.add(material, 'opacity', 0, 1, 0.01)
-materialFolder.add(material, 'depthTest')
-materialFolder.add(material, 'depthWrite')
-materialFolder
-  .add(material, 'alphaTest', 0, 1, 0.01)
-  .onChange(() => updateMaterial())
-materialFolder.add(material, 'visible')
-materialFolder
-  .add(material, 'side', options.side)
-  .onChange(() => updateMaterial())
-//materialFolder.open()
-
-const data = {
-  color: material.color.getHex(),
-  emissive: material.emissive.getHex(),
+function updateAnistropy() {
+  material2.map = texture2.clone()
+}
+function updateMinFilter() {
+  texture2.minFilter = Number(
+    texture2.minFilter
+  ) as THREE.MinificationTextureFilter
+  texture2.needsUpdate = true
+}
+function updateMagFilter() {
+  texture2.magFilter = Number(
+    texture2.magFilter
+  ) as THREE.MagnificationTextureFilter
+  texture2.needsUpdate = true
 }
 
-const meshPhysicalMaterialFolder = gui.addFolder(
-  'THREE.meshPhysicalMaterialFolder'
-)
-
-meshPhysicalMaterialFolder.addColor(data, 'color').onChange(() => {
-  material.color.setHex(Number(data.color.toString().replace('#', '0x')))
-})
-meshPhysicalMaterialFolder.addColor(data, 'emissive').onChange(() => {
-  material.emissive.setHex(Number(data.emissive.toString().replace('#', '0x')))
-})
-meshPhysicalMaterialFolder.add(material, 'wireframe')
-meshPhysicalMaterialFolder
-  .add(material, 'flatShading')
-  .onChange(() => updateMaterial())
-meshPhysicalMaterialFolder.add(material, 'reflectivity', 0, 1)
-meshPhysicalMaterialFolder.add(material, 'envMapIntensity', 0, 1)
-meshPhysicalMaterialFolder.add(material, 'roughness', 0, 1)
-meshPhysicalMaterialFolder.add(material, 'metalness', 0, 1)
-meshPhysicalMaterialFolder.add(material, 'clearcoat', 0, 1, 0.01)
-meshPhysicalMaterialFolder.add(material, 'clearcoatRoughness', 0, 1, 0.01)
-meshPhysicalMaterialFolder.open()
-
-function updateMaterial() {
-  material.side = Number(material.side) as THREE.Side
-  material.needsUpdate = true
-}
+const stats = new Stats()
+document.body.appendChild(stats.dom)
 
 function animate() {
   requestAnimationFrame(animate)
@@ -128,7 +137,19 @@ function animate() {
 }
 
 function render() {
-  renderer.render(scene, camera)
-}
+  renderer.setScissorTest(true)
 
+  renderer.setScissor(0, 0, window.innerWidth / 2 - 2, window.innerHeight)
+  renderer.render(scene1, camera)
+
+  renderer.setScissor(
+    window.innerWidth / 2,
+    0,
+    window.innerWidth / 2 - 2,
+    window.innerHeight
+  )
+  renderer.render(scene2, camera)
+
+  renderer.setScissorTest(false)
+}
 animate()
