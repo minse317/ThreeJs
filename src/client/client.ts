@@ -6,8 +6,11 @@ import { GUI } from 'dat.gui'
 const scene = new THREE.Scene()
 scene.add(new THREE.AxesHelper(5))
 
-const light = new THREE.AmbientLight()
+const light = new THREE.DirectionalLight(0xffffff, 5)
 scene.add(light)
+
+const helper = new THREE.DirectionalLightHelper(light)
+scene.add(helper)
 
 const camera = new THREE.PerspectiveCamera(
   75,
@@ -23,11 +26,11 @@ document.body.appendChild(renderer.domElement)
 
 new OrbitControls(camera, renderer.domElement)
 
-const planeGeometry = new THREE.PlaneGeometry(20, 10) //, 360, 180)
-const plane = new THREE.Mesh(planeGeometry, new THREE.MeshPhongMaterial())
-plane.rotateX(-Math.PI / 2)
-//plane.position.y = -1.75
-scene.add(plane)
+// const planeGeometry = new THREE.PlaneGeometry(20, 10)//, 360, 180)
+// const plane = new THREE.Mesh(planeGeometry, new THREE.MeshPhongMaterial())
+// plane.rotateX(-Math.PI / 2)
+// //plane.position.y = -1.75
+// scene.add(plane)
 
 const torusGeometry = [
   new THREE.TorusGeometry(),
@@ -93,10 +96,13 @@ const lightFolder = gui.addFolder('THREE.Light')
 lightFolder.addColor(data, 'color').onChange(() => {
   light.color.setHex(Number(data.color.toString().replace('#', '0x')))
 })
-lightFolder.add(light, 'intensity', 0, 1, 0.01)
+lightFolder.add(light, 'intensity', 0, 10, 0.01)
 
-const ambientLightFolder = gui.addFolder('THREE.AmbientLight')
-ambientLightFolder.open()
+const directionalLightFolder = gui.addFolder('THREE.DirectionalLight')
+directionalLightFolder.add(light.position, 'x', -100, 100, 0.01)
+directionalLightFolder.add(light.position, 'y', -100, 100, 0.01)
+directionalLightFolder.add(light.position, 'z', -100, 100, 0.01)
+directionalLightFolder.open()
 
 const meshesFolder = gui.addFolder('Meshes')
 meshesFolder.add(data, 'mapsEnabled').onChange(() => {
@@ -112,6 +118,8 @@ meshesFolder.add(data, 'mapsEnabled').onChange(() => {
 
 function animate() {
   requestAnimationFrame(animate)
+
+  //helper.update()
 
   torus.forEach(t => {
     t.rotation.y += 0.01
