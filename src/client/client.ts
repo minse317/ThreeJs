@@ -1,11 +1,14 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
-// import { DragControls } from 'three/examples/jsm/controls/DragControls'
-import { TransformControls } from 'three/examples/jsm/controls/TransformControls'
 import Stats from 'three/examples/jsm/libs/stats.module'
+import { GUI } from 'dat.gui'
 
 const scene = new THREE.Scene()
 scene.add(new THREE.AxesHelper(5))
+
+const light = new THREE.PointLight(0xffffff, 1000)
+light.position.set(0, 5, 10)
+scene.add(light)
 
 const camera = new THREE.PerspectiveCamera(
   75,
@@ -13,63 +16,28 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   1000
 )
-camera.position.z = 2
+camera.position.z = 1
 
 const renderer = new THREE.WebGLRenderer()
 renderer.setSize(window.innerWidth, window.innerHeight)
 document.body.appendChild(renderer.domElement)
 
-const geometry = new THREE.BoxGeometry()
-const material = new THREE.MeshNormalMaterial({ transparent: true })
+const controls = new OrbitControls(camera, renderer.domElement)
+controls.enableDamping = true
 
-const cube = new THREE.Mesh(geometry, material)
-scene.add(cube)
+const planeGeometry = new THREE.PlaneGeometry(3.6, 1.8)
 
-const orbitControls = new OrbitControls(camera, renderer.domElement)
+const material = new THREE.MeshPhongMaterial()
 
-// const dragControls = new DragControls([cube], camera, renderer.domElement)
-// dragControls.addEventListener('dragstart', function (event) {
-//   orbitControls.enabled = false
-//   event.object.material.opacity = 0.33
-// })
-// dragControls.addEventListener('dragend', function (event) {
-//   orbitControls.enabled = true
-//   event.object.material.opacity = 1
-// })
+const texture = new THREE.TextureLoader().load('img/worldColour.5400x2700.jpg')
+material.map = texture
 
-const transformControls = new TransformControls(camera, renderer.domElement)
-transformControls.attach(cube)
-transformControls.setMode('rotate')
-scene.add(transformControls)
+const bumpTexture = new THREE.TextureLoader().load('img/earth_bumpmap.jpg')
+material.bumpMap = bumpTexture
+material.bumpScale = 0.015
 
-transformControls.addEventListener('dragging-changed', function (event) {
-  orbitControls.enabled = !event.value
-  // dragControls.enabled = !event.value
-})
-
-window.addEventListener('keydown', function (event) {
-  switch (event.key) {
-    case 'g':
-      transformControls.setMode('translate')
-      break
-    case 'r':
-      transformControls.setMode('rotate')
-      break
-    case 's':
-      transformControls.setMode('scale')
-      break
-  }
-})
-
-const backGroundTexture = new THREE.CubeTextureLoader().load([
-  'img/px_eso0932a.jpg',
-  'img/nx_eso0932a.jpg',
-  'img/py_eso0932a.jpg',
-  'img/ny_eso0932a.jpg',
-  'img/pz_eso0932a.jpg',
-  'img/nz_eso0932a.jpg',
-])
-scene.background = backGroundTexture
+const plane = new THREE.Mesh(planeGeometry, material)
+scene.add(plane)
 
 window.addEventListener('resize', onWindowResize, false)
 function onWindowResize() {
@@ -82,8 +50,13 @@ function onWindowResize() {
 const stats = new Stats()
 document.body.appendChild(stats.dom)
 
+const gui = new GUI()
+gui.add(material, 'bumpScale', 0, 1, 0.01)
+
 function animate() {
   requestAnimationFrame(animate)
+
+  controls.update()
 
   render()
 
