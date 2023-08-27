@@ -1,13 +1,13 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
 import Stats from 'three/examples/jsm/libs/stats.module'
-import { GUI } from 'dat.gui'
 
 const scene = new THREE.Scene()
 scene.add(new THREE.AxesHelper(5))
 
 const light = new THREE.PointLight(0xffffff, 1000)
-light.position.set(0, 5, 10)
+light.position.set(2.5, 7.5, 15)
 scene.add(light)
 
 const camera = new THREE.PerspectiveCamera(
@@ -16,7 +16,7 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   1000
 )
-camera.position.z = 1
+camera.position.z = 3
 
 const renderer = new THREE.WebGLRenderer()
 renderer.setSize(window.innerWidth, window.innerHeight)
@@ -25,19 +25,27 @@ document.body.appendChild(renderer.domElement)
 const controls = new OrbitControls(camera, renderer.domElement)
 controls.enableDamping = true
 
-const planeGeometry = new THREE.PlaneGeometry(3.6, 1.8)
+// const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true })
 
-const material = new THREE.MeshPhongMaterial()
-
-const texture = new THREE.TextureLoader().load('img/worldColour.5400x2700.jpg')
-material.map = texture
-
-const bumpTexture = new THREE.TextureLoader().load('img/earth_bumpmap.jpg')
-material.bumpMap = bumpTexture
-material.bumpScale = 0.015
-
-const plane = new THREE.Mesh(planeGeometry, material)
-scene.add(plane)
+const objLoader = new OBJLoader()
+objLoader.load(
+  'models/monkey.obj',
+  object => {
+    // (object.children[0] as THREE.Mesh).material = material
+    // object.traverse(function (child) {
+    //     if ((child as THREE.Mesh).isMesh) {
+    //         (child as THREE.Mesh).material = material
+    //     }
+    // })
+    scene.add(object)
+  },
+  xhr => {
+    console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
+  },
+  error => {
+    console.log(error)
+  }
+)
 
 window.addEventListener('resize', onWindowResize, false)
 function onWindowResize() {
@@ -49,9 +57,6 @@ function onWindowResize() {
 
 const stats = new Stats()
 document.body.appendChild(stats.dom)
-
-const gui = new GUI()
-gui.add(material, 'bumpScale', 0, 1, 0.01)
 
 function animate() {
   requestAnimationFrame(animate)
