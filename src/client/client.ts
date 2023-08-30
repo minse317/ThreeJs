@@ -1,14 +1,13 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
-import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader'
 import Stats from 'three/examples/jsm/libs/stats.module'
+import { GUI } from 'dat.gui'
 
 const scene = new THREE.Scene()
 scene.add(new THREE.AxesHelper(5))
 
-const light = new THREE.PointLight(0xffffff, 1000)
-light.position.set(2.5, 7.5, 15)
+const light = new THREE.PointLight(0xffffff, 200)
+light.position.set(0, 2, 5)
 scene.add(light)
 
 const camera = new THREE.PerspectiveCamera(
@@ -17,7 +16,7 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   1000
 )
-camera.position.z = 3
+camera.position.z = 1
 
 const renderer = new THREE.WebGLRenderer()
 renderer.setSize(window.innerWidth, window.innerHeight)
@@ -26,63 +25,21 @@ document.body.appendChild(renderer.domElement)
 const controls = new OrbitControls(camera, renderer.domElement)
 controls.enableDamping = true
 
-const mtlLoader = new MTLLoader()
-mtlLoader.load(
-  'models/monkey.mtl',
-  materials => {
-    materials.preload()
-    // console.log(materials)
-    const objLoader = new OBJLoader()
-    objLoader.setMaterials(materials)
-    objLoader.load(
-      'models/monkey.obj',
-      object => {
-        scene.add(object)
-      },
-      xhr => {
-        console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
-      },
-      error => {
-        console.log('An error happened')
-      }
-    )
-  },
-  xhr => {
-    console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
-  },
-  error => {
-    console.log('An error happened')
-  }
-)
+const planeGeometry = new THREE.PlaneGeometry(3.6, 1.8)
 
-mtlLoader.load(
-  'models/monkeyTextured.mtl',
-  materials => {
-    materials.preload()
-    // console.log(materials)
-    const objLoader = new OBJLoader()
-    objLoader.setMaterials(materials)
-    objLoader.load(
-      'models/monkeyTextured.obj',
-      object => {
-        object.position.x = 2.5
-        scene.add(object)
-      },
-      xhr => {
-        console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
-      },
-      error => {
-        console.log('An error happened')
-      }
-    )
-  },
-  xhr => {
-    console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
-  },
-  error => {
-    console.log('An error happened')
-  }
+const material = new THREE.MeshPhongMaterial()
+
+const texture = new THREE.TextureLoader().load('img/worldColour.5400x2700.jpg')
+material.map = texture
+
+const normalTexture = new THREE.TextureLoader().load(
+  'img/earth_normalmap_8192x4096.jpg'
 )
+material.normalMap = normalTexture
+material.normalScale.set(2, 2)
+
+const plane = new THREE.Mesh(planeGeometry, material)
+scene.add(plane)
 
 window.addEventListener('resize', onWindowResize, false)
 function onWindowResize() {
@@ -94,6 +51,11 @@ function onWindowResize() {
 
 const stats = new Stats()
 document.body.appendChild(stats.dom)
+
+const gui = new GUI()
+gui.add(material.normalScale, 'x', 0, 10, 0.01)
+gui.add(material.normalScale, 'y', 0, 10, 0.01)
+gui.add(light.position, 'x', -20, 20).name('Light Pos X')
 
 function animate() {
   requestAnimationFrame(animate)
