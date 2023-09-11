@@ -1,17 +1,11 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
-import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import Stats from 'three/examples/jsm/libs/stats.module'
+import TWEEN from '@tweenjs/tween.js'
 
 const scene = new THREE.Scene()
 scene.add(new THREE.AxesHelper(5))
-
-const light = new THREE.PointLight(0xffffff, 1000)
-light.position.set(0.8, 1.4, 1.0)
-scene.add(light)
-
-const ambientLight = new THREE.AmbientLight()
-scene.add(ambientLight)
 
 const camera = new THREE.PerspectiveCamera(
   75,
@@ -19,32 +13,45 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   1000
 )
-camera.position.set(0.8, 1.4, 1.0)
+camera.position.z = 2
 
 const renderer = new THREE.WebGLRenderer()
+//renderer.physicallyCorrectLights = true //deprecated
+renderer.useLegacyLights = false //use this instead of setting physicallyCorrectLights=true property
+renderer.shadowMap.enabled = true
 renderer.setSize(window.innerWidth, window.innerHeight)
 document.body.appendChild(renderer.domElement)
 
 const controls = new OrbitControls(camera, renderer.domElement)
 controls.enableDamping = true
-controls.target.set(0, 1, 0)
 
-//const material = new THREE.MeshNormalMaterial()
+const sceneMeshes: THREE.Mesh[] = []
+let monkey: THREE.Mesh
 
-const fbxLoader = new FBXLoader()
-fbxLoader.load(
-  'models/Kachujin G Rosales.fbx',
-  object => {
-    // object.traverse(function (child) {
-    //     if ((child as THREE.Mesh).isMesh) {
-    //         // (child as THREE.Mesh).material = material
-    //         if ((child as THREE.Mesh).material) {
-    //             ((child as THREE.Mesh).material as THREE.MeshBasicMaterial).transparent = false
-    //         }
-    //     }
-    // })
-    // object.scale.set(.01, .01, .01)
-    scene.add(object)
+const loader = new GLTFLoader()
+loader.load(
+  'models/monkey_textured.glb',
+  function (gltf) {
+    gltf.scene.traverse(function (child) {
+      if ((child as THREE.Mesh).isMesh) {
+        let m = child as THREE.Mesh
+        m.receiveShadow = true
+        m.castShadow = true
+        if (child.name === 'Plane') {
+          sceneMeshes.push(m)
+        } else if (child.name === 'Suzanne') {
+          monkey = m
+        }
+      }
+      if ((child as THREE.Light).isLight) {
+        const l = child as THREE.SpotLight
+        l.castShadow = true
+        l.shadow.bias = -0.003
+        l.shadow.mapSize.width = 2048
+        l.shadow.mapSize.height = 2048
+      }
+    })
+    scene.add(gltf.scene)
   },
   xhr => {
     console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
@@ -62,6 +69,77 @@ function onWindowResize() {
   render()
 }
 
+const raycaster = new THREE.Raycaster()
+const mouse = new THREE.Vector2()
+
+function onDoubleClick(event: MouseEvent) {
+  mouse.set(
+    (event.clientX / renderer.domElement.clientWidth) * 2 - 1,
+    -(event.clientY / renderer.domElement.clientHeight) * 2 + 1
+  )
+  raycaster.setFromCamera(mouse, camera)
+
+  const intersects = raycaster.intersectObjects(sceneMeshes, false)
+
+  if (intersects.length > 0) {
+    const p = intersects[0].point
+
+    //controls.target.set(p.x, p.y, p.z)
+
+    // new TWEEN.Tween(controls.target)
+    //     .to({
+    //         x: p.x,
+    //         y: p.y,
+    //         z: p.z
+    //     }, 500)
+    //     //.delay (1000)
+    //     .easing(TWEEN.Easing.Cubic.Out)
+    //     //.onUpdate(() => render())
+    //     .start()
+
+    new TWEEN.Tween(monkey.position)
+      .to(
+        {
+          x: p.x,
+          // y: p.y + 1,
+          z: p.z,
+        },
+        500
+      )
+      .start()
+
+    new TWEEN.Tween(monkey.position)
+      .to(
+        {
+          // x: p.x,
+          y: p.y + 3,
+          // z: p.z,
+        },
+        250
+      )
+      //.delay (1000)
+      .easing(TWEEN.Easing.Cubic.Out)
+      //.onUpdate(() => render())
+      .start()
+      .onComplete(() => {
+        new TWEEN.Tween(monkey.position)
+          .to(
+            {
+              // x: p.x,
+              y: p.y + 1,
+              // z: p.z,
+            },
+            250
+          )
+          //.delay (250)
+          .easing(TWEEN.Easing.Bounce.Out)
+          //.onUpdate(() => render())
+          .start()
+      })
+  }
+}
+renderer.domElement.addEventListener('dblclick', onDoubleClick, false)
+
 const stats = new Stats()
 document.body.appendChild(stats.dom)
 
@@ -69,6 +147,8 @@ function animate() {
   requestAnimationFrame(animate)
 
   controls.update()
+
+  TWEEN.update()
 
   render()
 
